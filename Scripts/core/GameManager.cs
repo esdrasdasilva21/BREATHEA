@@ -1,4 +1,5 @@
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,7 +14,6 @@ public class ExerciseManager : MonoBehaviour
     public GameManager gameManager;
 
     private Coroutine exerciseCoroutine;
-
     private ExerciseData currentExercise;
 
     public bool IsRunning { get; private set; }
@@ -23,7 +23,12 @@ public class ExerciseManager : MonoBehaviour
         get { return currentExercise; }
     }
 
-    // Iniciar um exercicio atraves do seu indice
+    // Eventos para comunicar as fases respiratorias
+    public event Action<float> OnInhaleStarted;
+    public event Action<float> OnExhaleStarted;
+    public event Action OnExerciseFinished;
+    public event Action OnExerciseStopped;
+
     public void StartExercise(int index)
     {
         if (IsRunning)
@@ -72,7 +77,6 @@ public class ExerciseManager : MonoBehaviour
         );
     }
 
-    // Controlar os ciclos respiratorios
     private IEnumerator ExerciseRoutine()
     {
         for (int i = 0; i < currentExercise.cycles; i++)
@@ -82,23 +86,35 @@ public class ExerciseManager : MonoBehaviour
                 " de " + currentExercise.cycles
             );
 
+            // Fase de inspiracao
             Debug.Log("INSPIRAR");
+
+            OnInhaleStarted?.Invoke(
+                currentExercise.inhaleDuration
+            );
 
             yield return new WaitForSeconds(
                 currentExercise.inhaleDuration
             );
 
+            // Fase de expiracao
             Debug.Log("EXPIRAR");
+
+            OnExhaleStarted?.Invoke(
+                currentExercise.exhaleDuration
+            );
 
             yield return new WaitForSeconds(
                 currentExercise.exhaleDuration
             );
         }
 
-        Debug.Log("Exercicio concluido!");
-
         IsRunning = false;
         exerciseCoroutine = null;
+
+        Debug.Log("Exercicio concluido!");
+
+        OnExerciseFinished?.Invoke();
 
         if (gameManager != null)
         {
@@ -106,7 +122,6 @@ public class ExerciseManager : MonoBehaviour
         }
     }
 
-    // Interromper o exercicio
     public void StopExercise()
     {
         if (!IsRunning)
@@ -121,6 +136,8 @@ public class ExerciseManager : MonoBehaviour
         }
 
         IsRunning = false;
+
+        OnExerciseStopped?.Invoke();
 
         if (gameManager != null)
         {
