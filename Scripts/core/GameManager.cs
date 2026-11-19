@@ -17,34 +17,30 @@ public class ExerciseManager : MonoBehaviour
     private ExerciseData currentExercise;
 
     public bool IsRunning { get; private set; }
+    public bool IsPaused { get; private set; }
 
     public ExerciseData CurrentExercise
     {
         get { return currentExercise; }
     }
 
-    // Eventos para comunicar as fases respiratorias
     public event Action<float> OnInhaleStarted;
     public event Action<float> OnExhaleStarted;
+    public event Action<int, int> OnCycleCompleted;
     public event Action OnExerciseFinished;
     public event Action OnExerciseStopped;
-    public event Action<int, int> OnCycleCompleted;
 
     public void StartExercise(int index)
     {
         if (IsRunning)
         {
-            Debug.LogWarning(
-                "Ja existe um exercicio em andamento."
-            );
+            Debug.LogWarning("Ja existe um exercicio em andamento.");
             return;
         }
 
         if (index < 0 || index >= exercises.Count)
         {
-            Debug.LogWarning(
-                "Indice de exercicio invalido."
-            );
+            Debug.LogWarning("Indice de exercicio invalido.");
             return;
         }
 
@@ -55,27 +51,19 @@ public class ExerciseManager : MonoBehaviour
             currentExercise.inhaleDuration <= 0 ||
             currentExercise.exhaleDuration <= 0)
         {
-            Debug.LogWarning(
-                "Configuracao do exercicio invalida."
-            );
+            Debug.LogWarning("Configuracao do exercicio invalida.");
             return;
         }
 
         IsRunning = true;
+        IsPaused = false;
 
         if (gameManager != null)
-        {
             gameManager.StartGame();
-        }
 
-        exerciseCoroutine = StartCoroutine(
-            ExerciseRoutine()
-        );
+        exerciseCoroutine = StartCoroutine(ExerciseRoutine());
 
-        Debug.Log(
-            "Exercicio iniciado: " +
-            currentExercise.exerciseName
-        );
+        Debug.Log("Exercicio iniciado: " + currentExercise.exerciseName);
     }
 
     private IEnumerator ExerciseRoutine()
@@ -87,7 +75,6 @@ public class ExerciseManager : MonoBehaviour
                 " de " + currentExercise.cycles
             );
 
-            // Fase de inspiracao
             Debug.Log("INSPIRAR");
 
             OnInhaleStarted?.Invoke(
@@ -98,7 +85,6 @@ public class ExerciseManager : MonoBehaviour
                 currentExercise.inhaleDuration
             );
 
-            // Fase de expiracao
             Debug.Log("EXPIRAR");
 
             OnExhaleStarted?.Invoke(
@@ -108,9 +94,15 @@ public class ExerciseManager : MonoBehaviour
             yield return new WaitForSeconds(
                 currentExercise.exhaleDuration
             );
+
+            OnCycleCompleted?.Invoke(
+                i + 1,
+                currentExercise.cycles
+            );
         }
 
         IsRunning = false;
+        IsPaused = false;
         exerciseCoroutine = null;
 
         Debug.Log("Exercicio concluido!");
@@ -118,17 +110,39 @@ public class ExerciseManager : MonoBehaviour
         OnExerciseFinished?.Invoke();
 
         if (gameManager != null)
-        {
             gameManager.ReturnToMenu();
-        }
+    }
+
+    public void PauseExercise()
+    {
+        if (!IsRunning || IsPaused)
+            return;
+
+        IsPaused = true;
+
+        if (gameManager != null)
+            gameManager.PauseGame();
+
+        Debug.Log("Exercicio pausado!");
+    }
+
+    public void ResumeExercise()
+    {
+        if (!IsRunning || !IsPaused)
+            return;
+
+        IsPaused = false;
+
+        if (gameManager != null)
+            gameManager.ResumeGame();
+
+        Debug.Log("Exercicio retomado!");
     }
 
     public void StopExercise()
     {
         if (!IsRunning)
-        {
             return;
-        }
 
         if (exerciseCoroutine != null)
         {
@@ -137,38 +151,38 @@ public class ExerciseManager : MonoBehaviour
         }
 
         IsRunning = false;
+        IsPaused = false;
+
+        Time.timeScale = 1f;
 
         OnExerciseStopped?.Invoke();
 
         if (gameManager != null)
-        {
             gameManager.ReturnToMenu();
-        }
 
         Debug.Log("Exercicio interrompido!");
     }
 
-    // Controlos temporarios para testes
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
             StartExercise(0);
-        }
 
         if (Input.GetKeyDown(KeyCode.Alpha2))
-        {
             StartExercise(1);
-        }
 
         if (Input.GetKeyDown(KeyCode.Alpha3))
-        {
             StartExercise(2);
+
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            if (IsPaused)
+                ResumeExercise();
+            else
+                PauseExercise();
         }
 
         if (Input.GetKeyDown(KeyCode.Escape))
-        {
             StopExercise();
-        }
     }
 }
