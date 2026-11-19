@@ -28,6 +28,7 @@ public class ExerciseManager : MonoBehaviour
     public event Action<float> OnExhaleStarted;
     public event Action OnExerciseFinished;
     public event Action OnExerciseStopped;
+    public event Action<int, int> OnCycleCompleted;
 
     public void StartExercise(int index)
     {

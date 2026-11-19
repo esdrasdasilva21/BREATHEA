@@ -1,41 +1,32 @@
 
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
-public class EnvironmentController : MonoBehaviour
+public class ExerciseUIController : MonoBehaviour
 {
     [Header("References")]
     public ExerciseManager exerciseManager;
 
-    [Header("Environment Objects")]
-    public Transform[] natureObjects;
+    [Header("UI Elements")]
+    public Text exerciseTitle;
+    public Text timerText;
+    public Text cycleText;
 
-    [Header("Animation Settings")]
-    public float inhaleScaleMultiplier = 1.15f;
-
-    public float animationSpeed = 1f;
-
-    private Vector3[] originalScales;
-
-    private Coroutine environmentCoroutine;
-
-    private void Awake()
-    {
-        StoreOriginalScales();
-    }
+    private Coroutine timerCoroutine;
 
     private void OnEnable()
     {
         if (exerciseManager == null)
             return;
 
-        exerciseManager.OnInhaleStarted += HandleInhale;
+        exerciseManager.OnInhaleStarted += HandlePhaseStarted;
+        exerciseManager.OnExhaleStarted += HandlePhaseStarted;
 
-        exerciseManager.OnExhaleStarted += HandleExhale;
+        exerciseManager.OnCycleCompleted += HandleCycleCompleted;
 
-        exerciseManager.OnExerciseFinished += HandleFinished;
-
-        exerciseManager.OnExerciseStopped += HandleStopped;
+        exerciseManager.OnExerciseFinished += HandleExerciseFinished;
+        exerciseManager.OnExerciseStopped += HandleExerciseStopped;
     }
 
     private void OnDisable()
@@ -43,143 +34,84 @@ public class EnvironmentController : MonoBehaviour
         if (exerciseManager == null)
             return;
 
-        exerciseManager.OnInhaleStarted -= HandleInhale;
+        exerciseManager.OnInhaleStarted -= HandlePhaseStarted;
+        exerciseManager.OnExhaleStarted -= HandlePhaseStarted;
 
-        exerciseManager.OnExhaleStarted -= HandleExhale;
+        exerciseManager.OnCycleCompleted -= HandleCycleCompleted;
 
-        exerciseManager.OnExerciseFinished -= HandleFinished;
-
-        exerciseManager.OnExerciseStopped -= HandleStopped;
+        exerciseManager.OnExerciseFinished -= HandleExerciseFinished;
+        exerciseManager.OnExerciseStopped -= HandleExerciseStopped;
     }
 
-    // Guardar os tamanhos originais
-    private void StoreOriginalScales()
+    private void HandlePhaseStarted(float duration)
     {
-        originalScales = new Vector3[natureObjects.Length];
-
-        for (int i = 0; i < natureObjects.Length; i++)
+        if (exerciseManager.CurrentExercise != null &&
+            exerciseTitle != null)
         {
-            if (natureObjects[i] != null)
+            exerciseTitle.text =
+                exerciseManager.CurrentExercise.exerciseName;
+        }
+
+        if (timerCoroutine != null)
+            StopCoroutine(timerCoroutine);
+
+        timerCoroutine = StartCoroutine(UpdateTimer(duration));
+    }
+
+    private IEnumerator UpdateTimer(float duration)
+    {
+        float remainingTime = duration;
+
+        while (remainingTime > 0f)
+        {
+            if (timerText != null)
             {
-                originalScales[i] =
-                    natureObjects[i].localScale;
+                timerText.text =
+                    remainingTime.ToString("F1") + " s";
             }
-        }
-    }
 
-    // Reagir a inspiracao
-    private void HandleInhale(float duration)
-    {
-        AnimateEnvironment(
-            inhaleScaleMultiplier,
-            duration
-        );
-
-        Debug.Log("Ambiente: Inspiracao");
-    }
-
-    // Reagir a expiracao
-    private void HandleExhale(float duration)
-    {
-        AnimateEnvironment(
-            1f,
-            duration
-        );
-
-        Debug.Log("Ambiente: Expiracao");
-    }
-
-    // Quando o exercicio termina
-    private void HandleFinished()
-    {
-        AnimateEnvironment(1f, animationSpeed);
-    }
-
-    // Quando o exercicio e interrompido
-    private void HandleStopped()
-    {
-        AnimateEnvironment(1f, animationSpeed);
-    }
-
-    // Iniciar animacao do ambiente
-    private void AnimateEnvironment(
-        float multiplier,
-        float duration)
-    {
-        if (environmentCoroutine != null)
-        {
-            StopCoroutine(environmentCoroutine);
-        }
-
-        environmentCoroutine = StartCoroutine(
-            EnvironmentAnimation(
-                multiplier,
-                duration
-            )
-        );
-    }
-
-    // Animar todos os elementos naturais
-    private IEnumerator EnvironmentAnimation(
-        float multiplier,
-        float duration)
-    {
-        Vector3[] startingScales =
-            new Vector3[natureObjects.Length];
-
-        Vector3[] targetScales =
-            new Vector3[natureObjects.Length];
-
-        for (int i = 0; i < natureObjects.Length; i++)
-        {
-            if (natureObjects[i] == null)
-                continue;
-
-            startingScales[i] =
-                natureObjects[i].localScale;
-
-            targetScales[i] =
-                originalScales[i] * multiplier;
-        }
-
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-
-            float progress = Mathf.Clamp01(
-                elapsed / duration
-            );
-
-            float smoothProgress =
-                Mathf.SmoothStep(0f, 1f, progress);
-
-            for (int i = 0; i < natureObjects.Length; i++)
-            {
-                if (natureObjects[i] == null)
-                    continue;
-
-                natureObjects[i].localScale =
-                    Vector3.Lerp(
-                        startingScales[i],
-                        targetScales[i],
-                        smoothProgress
-                    );
-            }
+            remainingTime -= Time.deltaTime;
 
             yield return null;
         }
 
-        for (int i = 0; i < natureObjects.Length; i++)
-        {
-            if (natureObjects[i] == null)
-                continue;
+        if (timerText != null)
+            timerText.text = "0.0 s";
 
-            natureObjects[i].localScale =
-                targetScales[i];
+        timerCoroutine = null;
+    }
+
+    private void HandleCycleCompleted(int completed, int total)
+    {
+        if (cycleText != null)
+        {
+            cycleText.text =
+                "CICLO " + completed + " / " + total;
+        }
+    }
+
+    private void HandleExerciseFinished()
+    {
+        ResetUI("EXERCÍCIO CONCLUÍDO");
+    }
+
+    private void HandleExerciseStopped()
+    {
+        ResetUI("EXERCÍCIO INTERROMPIDO");
+    }
+
+    private void ResetUI(string message)
+    {
+        if (timerCoroutine != null)
+        {
+            StopCoroutine(timerCoroutine);
+            timerCoroutine = null;
         }
 
-        environmentCoroutine = null;
+        if (exerciseTitle != null)
+            exerciseTitle.text = message;
+
+        if (timerText != null)
+            timerText.text = "--";
     }
 }
