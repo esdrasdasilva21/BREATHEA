@@ -24,7 +24,6 @@ public class ExerciseSelectionController : MonoBehaviour
     public Color selectedColor = new Color(0.55f, 0.85f, 0.65f);
 
     private int selectedExerciseIndex = -1;
-
     private Button[] exerciseButtons;
 
     private void Start()
@@ -48,6 +47,24 @@ public class ExerciseSelectionController : MonoBehaviour
         UpdateButtonColors();
     }
 
+    private void OnEnable()
+    {
+        if (exerciseManager != null)
+        {
+            exerciseManager.OnExerciseFinished += ShowSelectionPanel;
+            exerciseManager.OnExerciseStopped += ShowSelectionPanel;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (exerciseManager != null)
+        {
+            exerciseManager.OnExerciseFinished -= ShowSelectionPanel;
+            exerciseManager.OnExerciseStopped -= ShowSelectionPanel;
+        }
+    }
+
     private void SelectExercise(int index)
     {
         if (index < 0 || index >= exerciseManager.exercises.Count)
@@ -66,8 +83,6 @@ public class ExerciseSelectionController : MonoBehaviour
         startExerciseButton.interactable = true;
 
         UpdateButtonColors();
-
-        Debug.Log("Exercício selecionado: " + exercise.exerciseName);
     }
 
     private void UpdateButtonColors()
@@ -92,5 +107,10 @@ public class ExerciseSelectionController : MonoBehaviour
         selectionPanel.SetActive(false);
 
         exerciseManager.StartExercise(selectedExerciseIndex);
+    }
+
+    private void ShowSelectionPanel()
+    {
+        selectionPanel.SetActive(true);
     }
 }
