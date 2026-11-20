@@ -6,15 +6,18 @@ public class ExerciseSelectionController : MonoBehaviour
 {
     [Header("References")]
     public ExerciseManager exerciseManager;
+    public UITransitionController transitionController;
 
     [Header("Selection Panel")]
     public GameObject selectionPanel;
+    public CanvasGroup selectionCanvasGroup;
 
     [Header("Exercise Buttons")]
     public Button exercise1Button;
     public Button exercise2Button;
     public Button exercise3Button;
     public Button startExerciseButton;
+    public Button clearSelectionButton;
 
     [Header("Description")]
     public Text exerciseDescription;
@@ -40,6 +43,7 @@ public class ExerciseSelectionController : MonoBehaviour
         exercise3Button.onClick.AddListener(() => SelectExercise(2));
 
         startExerciseButton.onClick.AddListener(StartSelectedExercise);
+        clearSelectionButton.onClick.AddListener(ClearSelection);
 
         startExerciseButton.interactable = false;
         exerciseDescription.text = "Seleciona um exercício";
@@ -50,19 +54,13 @@ public class ExerciseSelectionController : MonoBehaviour
     private void OnEnable()
     {
         if (exerciseManager != null)
-        {
-            exerciseManager.OnExerciseFinished += ShowSelectionPanel;
             exerciseManager.OnExerciseStopped += ShowSelectionPanel;
-        }
     }
 
     private void OnDisable()
     {
         if (exerciseManager != null)
-        {
-            exerciseManager.OnExerciseFinished -= ShowSelectionPanel;
             exerciseManager.OnExerciseStopped -= ShowSelectionPanel;
-        }
     }
 
     private void SelectExercise(int index)
@@ -81,6 +79,16 @@ public class ExerciseSelectionController : MonoBehaviour
             "Ciclos: " + exercise.cycles;
 
         startExerciseButton.interactable = true;
+
+        UpdateButtonColors();
+    }
+
+    private void ClearSelection()
+    {
+        selectedExerciseIndex = -1;
+
+        exerciseDescription.text = "Seleciona um exercício";
+        startExerciseButton.interactable = false;
 
         UpdateButtonColors();
     }
@@ -104,13 +112,13 @@ public class ExerciseSelectionController : MonoBehaviour
         if (selectedExerciseIndex < 0 || exerciseManager.IsRunning)
             return;
 
-        selectionPanel.SetActive(false);
+        transitionController.HidePanel(selectionCanvasGroup);
 
         exerciseManager.StartExercise(selectedExerciseIndex);
     }
 
     private void ShowSelectionPanel()
     {
-        selectionPanel.SetActive(true);
+        transitionController.ShowPanel(selectionCanvasGroup);
     }
 }
