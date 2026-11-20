@@ -1,85 +1,104 @@
 
-using System.Text;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
-public class SessionHistoryUIController : MonoBehaviour
+public class SessionHistoryManager : MonoBehaviour
 {
-    [Header("References")]
-    public SessionHistoryManager historyManager;
-    public GameObject historyPanel;
-    public GameObject selectionPanel;
+    public List<SessionData> sessions = new List<SessionData>();
 
-    [Header("UI Texts")]
-    public Text totalSessionsText;
-    public Text totalCyclesText;
-    public Text totalDurationText;
-    public Text sessionListText;
-
-    [Header("Buttons")]
-    public Button backButton;
-
-    private void Start()
+    private void Awake()
     {
-        historyPanel.SetActive(false);
+        sessions = SessionStorage.LoadSessions();
 
-        backButton.onClick.AddListener(CloseHistory);
+        Debug.Log("Sessões carregadas: " + sessions.Count);
     }
 
-    public void OpenHistory()
+    public void AddSession(SessionData session)
     {
-        UpdateHistory();
-        historyPanel.SetActive(true);
-        selectionPanel.SetActive(false);
+        if (session == null)
+            return;
+
+        sessions.Add(session);
+
+        SessionStorage.SaveSessions(sessions);
+
+        Debug.Log("Sessão registada: " + session.exerciseName);
     }
 
-    private void UpdateHistory()
+    public int GetTotalSessions()
     {
-        totalSessionsText.text =
-            "Sessões realizadas: " + historyManager.GetTotalSessions();
-
-        totalCyclesText.text =
-            "Ciclos concluídos: " + historyManager.GetTotalCycles();
-
-        totalDurationText.text =
-            "Tempo total: " +
-            Mathf.RoundToInt(historyManager.GetTotalDuration()) +
-            " segundos";
-
-        StringBuilder history = new StringBuilder();
-
-        if (historyManager.sessions.Count == 0)
-        {
-            history.Append("Ainda não existem sessões.");
-        }
-        else
-        {
-            foreach (SessionData session in historyManager.sessions)
-            {
-                history.Append("Exercício: ");
-                history.AppendLine(session.exerciseName);
-
-                history.Append("Ciclos: ");
-                history.AppendLine(session.completedCycles.ToString());
-
-                history.Append("Duração: ");
-                history.AppendLine(
-                    Mathf.RoundToInt(session.duration) + " segundos"
-                );
-
-                history.Append("Data: ");
-                history.AppendLine(session.completionDate);
-
-                history.AppendLine("----------------------");
-            }
-        }
-
-        sessionListText.text = history.ToString();
+        return sessions.Count;
     }
 
-    private void CloseHistory()
+    public int GetTotalCycles()
     {
-        historyPanel.SetActive(false);
-        selectionPanel.SetActive(true);
+        int total = 0;
+
+        foreach (SessionData session in sessions)
+            total += session.completedCycles;
+
+        return total;
+    }
+
+    public float GetTotalDuration()
+    {
+        float total = 0f;
+
+        foreach (SessionData session in sessions)
+            total += session.duration;
+
+        return total;
+    }
+}
+
+using System.Collections.Generic;
+using UnityEngine;
+
+public class SessionHistoryManager : MonoBehaviour
+{
+    public List<SessionData> sessions = new List<SessionData>();
+
+    private void Awake()
+    {
+        sessions = SessionStorage.LoadSessions();
+
+        Debug.Log("Sessões carregadas: " + sessions.Count);
+    }
+
+    public void AddSession(SessionData session)
+    {
+        if (session == null)
+            return;
+
+        sessions.Add(session);
+
+        SessionStorage.SaveSessions(sessions);
+
+        Debug.Log("Sessão registada: " + session.exerciseName);
+    }
+
+    public int GetTotalSessions()
+    {
+        return sessions.Count;
+    }
+
+    public int GetTotalCycles()
+    {
+        int total = 0;
+
+        foreach (SessionData session in sessions)
+            total += session.completedCycles;
+
+        return total;
+    }
+
+    public float GetTotalDuration()
+    {
+        float total = 0f;
+
+        foreach (SessionData session in sessions)
+            total += session.duration;
+
+        return total;
     }
 }
